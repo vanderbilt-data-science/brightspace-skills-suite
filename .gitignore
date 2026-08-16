@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.DS_Store
+.venv/
+*.env
+.env
+# never commit a saved session or token
+storage_state.json
+token-*.json
+# pulled student submissions (FERPA)
+submissions-*/
