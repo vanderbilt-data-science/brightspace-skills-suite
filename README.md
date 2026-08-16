@@ -1,26 +1,28 @@
 # Brightspace Skills
 
-**AI skills for running a Brightspace (D2L) course from the command line —
-design it, manage it, and grade it, with as little time in the GUI as
-possible.**
+**Run your Brightspace (D2L) course by asking an AI agent — design it,
+manage it, and grade it in plain language, instead of clicking through the
+GUI.** These are agent skills, used from **Claude Cowork, Claude Code,
+ChatGPT for Work, or OpenAI Codex** — not a command-line tool you operate
+yourself.
 
 Created by **Jesse Spencer-Smith** (Vanderbilt Data Science Institute) and
 **Claude Opus**.
 
-These are [Agent Skills](https://docs.claude.com/en/docs/agents-and-tools/agent-skills/overview):
-folders containing a `SKILL.md` plus Python scripts. An AI assistant reads
-the `SKILL.md`, and when you ask for something in plain language ("set up my
-course from this folder", "who hasn't submitted Lab 2", "draft feedback for
-these essays"), it runs the right script. Everything talks to Brightspace
-over its official Valence API using **your own logged-in browser session** —
-no OAuth app registration, no admin rights, and (for interactive use) no
-browser automation framework.
+Each skill is an [Agent Skill](https://docs.claude.com/en/docs/agents-and-tools/agent-skills/overview):
+packaged know-how (a `SKILL.md` plus Python helpers) that an AI agent loads
+on its own when it's relevant. **You don't run commands** — you ask ("set up
+my course from this folder", "who hasn't submitted Lab 2", "draft feedback
+for these essays") and the agent picks the right skill and does the work,
+showing you what it will change before it changes anything. Under the hood
+the agent talks to Brightspace over its official Valence API using **your own
+logged-in session** — no OAuth app registration and no admin rights.
 
 > **Why this exists:** Vanderbilt (like many schools) gives faculty no API
-> credentials for Brightspace. These skills mint a short-lived API token from
-> a session you're already logged into, so everything an instructor does —
-> content, assignments, quizzes, announcements, grading — can be scripted,
-> verified, and repeated, instead of clicked.
+> credentials for Brightspace. These skills let an agent mint a short-lived
+> API token from a session you're already logged into, so everything an
+> instructor does — content, assignments, quizzes, announcements, grading —
+> can be done conversationally, verified, and repeated, instead of clicked.
 
 ---
 
@@ -193,7 +195,7 @@ Start a session and just ask — the skills trigger by description. The
 Claude-in-Chrome extension (if installed) handles the UI-only tail (rubric
 creation, quiz pools).
 
-### Claude Desktop app (Mac/Windows)
+### Claude Cowork (Claude Desktop app, Mac/Windows)
 
 1. Enable **Code execution** and **Skills** in **Settings → Capabilities**.
 2. For each skill, zip its folder (e.g. `zip -r brightspace-course.zip
