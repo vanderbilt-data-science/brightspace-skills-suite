@@ -4,7 +4,7 @@
 
 ```
 async-package/
-├── manifest.json               # the contract consumed by brightspace-module-publish
+├── manifest.json               # the contract consumed by brightspace-video-module-publish
 ├── segment-plan.md             # human-reviewable plan (approved in Phase 1)
 ├── overview.html               # "Start here" module page
 ├── plan.json                   # input given to segment_video.py (kept for reruns)
@@ -90,7 +90,7 @@ Prefers the `TRANSCRIPT` VTT over closed captions; warns if no transcript
 exists (transcribe locally with whisper). Credentials come from the
 environment and are never printed.
 
-## manifest.json (the contract with brightspace-module-publish)
+## manifest.json (the contract with brightspace-video-module-publish)
 
 ```json
 {

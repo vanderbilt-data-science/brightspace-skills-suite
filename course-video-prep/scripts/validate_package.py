@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate an async-package directory before handoff to brightspace-module-publish.
+"""Validate an async-package directory before handoff to brightspace-video-module-publish.
 
 Usage: python3 validate_package.py <package-dir> [--max-minutes 15]
 

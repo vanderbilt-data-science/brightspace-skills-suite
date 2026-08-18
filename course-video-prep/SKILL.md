@@ -1,11 +1,11 @@
 ---
 name: course-video-prep
-description: Convert a Zoom class recording - a local mp4 + VTT transcript, OR a Zoom cloud recording link the skill fetches for you - plus presentation materials into a best-practice asynchronous course module package: short concept-aligned video segments, each opening with an intro card branded to the target course (the CCC kit, a plain kit, custom colors, or a provided template slide), per-segment captions, interspersed low-stakes check-for-understanding quizzes (QTI for Brightspace import + KST instrument files), topic descriptions, and a manifest.json ready for the brightspace-module-publish skill. Use whenever the user wants to turn a recorded lecture, workshop, or technology demonstration into online course videos, or says things like "prepare the async content", "chunk this recording", "make course videos from this Zoom", "make videos from this Zoom cloud link", "prep week N videos", or mentions preparing async material for the MSAI / KST-based courses. This is Tool #2 "Video Preparation" from course-development/docs/tools-to-build.md.
+description: Convert a Zoom class recording - a local mp4 + VTT transcript, OR a Zoom cloud recording link the skill fetches for you - plus presentation materials into a best-practice asynchronous course module package: short concept-aligned video segments, each opening with an intro card branded to the target course (the CCC kit, a plain kit, custom colors, or a provided template slide), per-segment captions, interspersed low-stakes check-for-understanding quizzes (QTI for Brightspace import + KST instrument files), topic descriptions, and a manifest.json ready for the brightspace-video-module-publish skill. Use whenever the user wants to turn a recorded lecture, workshop, or technology demonstration into online course videos, or says things like "prepare the async content", "chunk this recording", "make course videos from this Zoom", "make videos from this Zoom cloud link", "prep week N videos", or mentions preparing async material for the MSAI / KST-based courses. This is Tool #2 "Video Preparation" from course-development/docs/tools-to-build.md.
 ---
 
 # Course Video Prep
 
-Turn one long recording into a complete, reviewable async module package: a sequence of short videos (each opening with an intro card), captions, quizzes placed between videos, and descriptive text — everything the `brightspace-module-publish` skill needs to put it in the LMS in one motion.
+Turn one long recording into a complete, reviewable async module package: a sequence of short videos (each opening with an intro card), captions, quizzes placed between videos, and descriptive text — everything the `brightspace-video-module-publish` skill needs to put it in the LMS in one motion.
 
 The pedagogical model: students watch a 6-12 minute segment focused on one concept, then immediately answer 2-4 low-stakes questions about it (retrieval practice), then move to the next segment. Segment boundaries follow concepts, not the clock.
 
@@ -185,14 +185,14 @@ This verifies the manifest parses, every referenced file exists, every video has
 
 Finish with a report to the user: segment table (title, length, quiz question count), total watch time, what was dropped from the recording, where the package lives, and the one-liner to publish it:
 
-> Package ready. To upload: use the **brightspace-module-publish** skill on `<package-dir>` (dry-run first).
+> Package ready. To upload: use the **brightspace-video-module-publish** skill on `<package-dir>` (dry-run first).
 
 ## Conventions this skill must honor
 
 - **Ground, never invent scope**: concepts/objectives come from lecture.md, domain.json, or concepts.yaml when they exist. Frontmatter on generated markdown carries `generated_by: course-video-prep` and `status: draft` — faculty promote drafts, never this skill.
 - **kebab-case ids** everywhere; reuse existing concept ids rather than coining near-duplicates.
 - **Plain ASCII** in all generated text (no smart quotes, em-dashes, arrows); define every acronym at first use.
-- **Nothing uploads from this skill.** Its product is a package on disk. Upload is `brightspace-module-publish`'s job — keeping the seam clean is deliberate (the LMS access layer is still evolving).
+- **Nothing uploads from this skill.** Its product is a package on disk. Upload is `brightspace-video-module-publish`'s job — keeping the seam clean is deliberate (the LMS access layer is still evolving).
 
 ## Large / awkward inputs
 

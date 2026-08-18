@@ -1,5 +1,5 @@
 ---
-name: brightspace-module-publish
+name: brightspace-video-module-publish
 description: Publish a prepared async course package (from the course-video-prep skill, or any directory with a conforming manifest.json) into a Brightspace (D2L) course as a content module - uploading videos and caption files, importing QTI quiz packages, creating description pages, and verifying every write by reading it back. Uses the instructor's saved SSO browser session (no OAuth app registration needed). Use whenever the user wants to upload course videos or quizzes to Brightspace, push a week's async module to the LMS, "publish the package", or asks to get prepared course content into brightspace.vanderbilt.edu or the D2L test tenant. Always dry-run first.
 ---
 
