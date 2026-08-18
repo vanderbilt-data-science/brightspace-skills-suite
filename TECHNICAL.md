@@ -30,7 +30,7 @@ and how to use it) plus Python scripts and reference docs.
 | **`brightspace-manage`** | In-semester upkeep | uses `brightspace-course`'s scripts |
 | **`brightspace-grading`** | Pull submissions, AI-draft feedback, publish | `grading.py` |
 | **`course-video-prep`** | Zoom recording → segments, captions, quizzes | `segment_video.py`, `make_qti.py`, `validate_package.py` |
-| **`brightspace-publish`** | Publish a prepared package as a content module | `bs_session.py`, `publish.py` |
+| **`brightspace-video-module-publish`** | Publish a prepared package as a content module | `bs_session.py`, `publish.py` |
 
 All five share one engine (`brightspace-course/scripts/bsapi.py`) and one set
 of safety rules.
@@ -116,7 +116,7 @@ Skills live in `~/.claude/skills/` (personal) or `.claude/skills/` (project):
 git clone https://github.com/vanderbilt-data-science/brightspace-skills-suite.git
 cd brightspace-skills-suite
 for s in brightspace-course brightspace-manage brightspace-grading \
-         course-video-prep brightspace-publish; do
+         course-video-prep brightspace-video-module-publish; do
   ln -s "$PWD/$s" "$HOME/.claude/skills/$s"
 done
 ```
@@ -259,7 +259,7 @@ brightspace-course/     Design & build a course (the shared engine lives here)
 brightspace-manage/     In-semester upkeep of a running course
 brightspace-grading/    Pull submissions, AI-draft feedback, publish
 course-video-prep/      Zoom recording → segments, captions, quizzes
-brightspace-publish/    Publish a prepared package as a content module
+brightspace-video-module-publish/    Publish a prepared package as a content module
 tools/login.py          Optional Playwright login (unattended runs only)
 LICENSE                 MIT
 ```

@@ -96,12 +96,86 @@ def probe(video):
     }
 
 
-# ---------------------------------------------------------------- intro card
+# ---------------------------------------------------------------- branding
 
-BG = (16, 20, 25)          # near-black
-GOLD = (207, 174, 112)     # accent
-WHITE = (245, 245, 245)
-GRAY = (170, 175, 182)
+def hex_rgb(s):
+    s = str(s).lstrip("#")
+    if len(s) == 3:
+        s = "".join(c * 2 for c in s)
+    if len(s) != 6:
+        die(f"bad hex color: {s}")
+    return tuple(int(s[i:i + 2], 16) for i in (0, 2, 4))
+
+
+def _luminance(rgb):
+    r, g, b = (c / 255 for c in rgb)
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+# Named presets keyed to the Brightspace page-template a course chooses
+# (see brightspace-course course.json `template`). CCC is the Vanderbilt
+# College of Connected Computing kit; plain-* are the neutral kit.
+PRESETS = {
+    "ccc": {"bg": "#1c1c1c", "accent": "#cfae70", "text": "#f5f5f5",
+            "muted": "#aab0b8",
+            "logo": "https://res.cloudinary.com/dgylujava/image/upload/"
+                    "v1783572754/V_Centered_CCC_White_1_wir9ei.png"},
+    "plain-dark": {"bg": "#14181d", "accent": "#5b8fd6", "text": "#f5f5f5",
+                   "muted": "#aab0b8"},
+    "plain-light": {"bg": "#f7f7f5", "accent": "#9a7b3f", "text": "#1c1b19",
+                    "muted": "#6b6862"},
+    "plain": {"bg": "#f7f7f5", "accent": "#9a7b3f", "text": "#1c1b19",
+              "muted": "#6b6862"},
+}
+
+
+def resolve_branding(plan, cache_dir):
+    """Build the card palette from plan['branding'] (template preset +
+    overrides), or default to CCC for backward compatibility. Returns a
+    dict with rgb tuples plus optional local logo/template_slide paths."""
+    b = dict(plan.get("branding") or {})
+    preset = PRESETS.get(b.get("template", "ccc"), PRESETS["ccc"]).copy()
+    preset.update({k: v for k, v in b.items()
+                   if k in ("bg", "accent", "text", "muted", "logo")})
+    br = {"bg": hex_rgb(preset["bg"]), "accent": hex_rgb(preset["accent"])}
+    # text/muted default to the readable pole for the chosen background
+    dark_bg = _luminance(br["bg"]) < 0.5
+    br["text"] = hex_rgb(preset.get(
+        "text", "#f5f5f5" if dark_bg else "#1c1b19"))
+    br["muted"] = hex_rgb(preset.get(
+        "muted", "#aab0b8" if dark_bg else "#6b6862"))
+    br["logo"] = _local_image(preset.get("logo"), cache_dir)
+    br["template_slide"] = _local_image(b.get("template_slide"), cache_dir)
+    return br
+
+
+def _local_image(ref, cache_dir):
+    """Return a local path for a logo/slide given a path or http(s) URL
+    (downloaded once, cached). None if not provided or fetch fails."""
+    if not ref:
+        return None
+    if str(ref).startswith(("http://", "https://")):
+        import hashlib
+        import urllib.request
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        ext = Path(str(ref).split("?")[0]).suffix or ".png"
+        dest = cache_dir / (hashlib.sha1(str(ref).encode()).hexdigest()[:16]
+                            + ext)
+        if not dest.exists():
+            try:
+                urllib.request.urlretrieve(ref, dest)
+            except Exception as e:  # noqa: BLE001 - non-fatal (card still renders)
+                print(f"  warning: could not fetch image {ref}: {e}")
+                return None
+        return dest
+    p = Path(ref).expanduser()
+    if not p.exists():
+        print(f"  warning: image not found: {p}")
+        return None
+    return p
+
+
+# ---------------------------------------------------------------- intro card
 
 FONT_CANDIDATES = [
     "/System/Library/Fonts/Helvetica.ttc",
@@ -138,11 +212,33 @@ def wrap_text(draw, text, font, max_width):
     return lines
 
 
-def render_card(seg, plan, size, out_png):
+def _cover(img, W, H):
+    """Scale+crop an image to exactly fill WxH (CSS background: cover)."""
+    iw, ih = img.size
+    s = max(W / iw, H / ih)
+    img = img.resize((max(1, int(iw * s)), max(1, int(ih * s))))
+    x = (img.width - W) // 2
+    y = (img.height - H) // 2
+    return img.crop((x, y, x + W, y + H))
+
+
+def render_card(seg, plan, size, out_png, br):
     from PIL import Image, ImageDraw
     W, H = size
     scale = H / 1080.0
-    img = Image.new("RGB", (W, H), BG)
+    accent, text, muted = br["accent"], br["text"], br["muted"]
+
+    # Background: a provided template slide (cover-fit) or the flat brand bg.
+    if br.get("template_slide"):
+        base = _cover(Image.open(br["template_slide"]).convert("RGB"), W, H)
+        # scrim so text stays legible over an arbitrary slide
+        scrim = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        sd = ImageDraw.Draw(scrim)
+        sd.rectangle([0, 0, int(W * 0.62), H], fill=(0, 0, 0, 150))
+        img = Image.alpha_composite(base.convert("RGBA"), scrim).convert("RGB")
+        text, muted = (245, 245, 245), (210, 213, 218)  # force light on scrim
+    else:
+        img = Image.new("RGB", (W, H), br["bg"])
     d = ImageDraw.Draw(img)
 
     margin = int(120 * scale)
@@ -151,27 +247,39 @@ def render_card(seg, plan, size, out_png):
     f_sub = load_font(int(44 * scale))
     f_bullet = load_font(int(40 * scale))
 
+    # Optional logo, top-right.
+    if br.get("logo"):
+        try:
+            logo = Image.open(br["logo"]).convert("RGBA")
+            lh = int(120 * scale)
+            lw = max(1, int(logo.width * lh / logo.height))
+            logo = logo.resize((lw, lh))
+            img.paste(logo, (W - margin - lw, int(90 * scale)), logo)
+        except Exception as e:  # noqa: BLE001 - logo is decorative
+            print(f"  warning: could not place logo: {e}")
+
     y = int(140 * scale)
     course_line = plan.get("course_line", "")
     if course_line:
-        d.text((margin, y), course_line.upper(), font=f_course, fill=GOLD)
+        d.text((margin, y), course_line.upper(), font=f_course, fill=accent)
         y += int(60 * scale)
     module_line = plan.get("module_line", "")
     if module_line:
-        d.text((margin, y), module_line, font=f_course, fill=GRAY)
+        d.text((margin, y), module_line, font=f_course, fill=muted)
         y += int(70 * scale)
 
-    # gold rule
-    d.rectangle([margin, y, margin + int(160 * scale), y + int(8 * scale)], fill=GOLD)
+    # accent rule
+    d.rectangle([margin, y, margin + int(160 * scale), y + int(8 * scale)],
+                fill=accent)
     y += int(70 * scale)
 
-    for line in wrap_text(d, seg["title"], f_title, W - 2 * margin):
-        d.text((margin, y), line, font=f_title, fill=WHITE)
+    for line in wrap_text(d, seg["title"], f_title, int(W * 0.82) - margin):
+        d.text((margin, y), line, font=f_title, fill=text)
         y += int(100 * scale)
 
     if seg.get("subtitle"):
         y += int(10 * scale)
-        d.text((margin, y), seg["subtitle"], font=f_sub, fill=GOLD)
+        d.text((margin, y), seg["subtitle"], font=f_sub, fill=accent)
         y += int(90 * scale)
 
     bullets = seg.get("bullets", [])[:4]
@@ -179,10 +287,10 @@ def render_card(seg, plan, size, out_png):
         y += int(20 * scale)
         for b in bullets:
             d.ellipse([margin, y + int(16 * scale), margin + int(14 * scale),
-                       y + int(30 * scale)], fill=GOLD)
+                       y + int(30 * scale)], fill=accent)
             bx = margin + int(40 * scale)
-            for line in wrap_text(d, b, f_bullet, W - bx - margin):
-                d.text((bx, y), line, font=f_bullet, fill=GRAY)
+            for line in wrap_text(d, b, f_bullet, int(W * 0.82) - bx):
+                d.text((bx, y), line, font=f_bullet, fill=muted)
                 y += int(56 * scale)
             y += int(14 * scale)
 
@@ -249,7 +357,7 @@ def build_segment(seg, plan, src, meta, dirs, tmp):
     W, H, fps = meta["width"], meta["height"], meta["fps"]
 
     card_png = dirs["cards"] / f"{name}.png"
-    render_card(seg, plan, (W, H), card_png)
+    render_card(seg, plan, (W, H), card_png, plan["_branding"])
 
     enc = ["-c:v", "libx264", "-crf", "20", "-preset", "fast",
            "-pix_fmt", "yuv420p", "-r", f"{fps}",
@@ -320,6 +428,13 @@ def main():
             "cards": out / "intro-cards"}
     for d in dirs.values():
         d.mkdir(parents=True, exist_ok=True)
+
+    plan["_branding"] = resolve_branding(plan, out / ".brand-cache")
+    bt = (plan.get("branding") or {}).get("template", "ccc (default)")
+    print(f"Branding: {bt}"
+          + ("  + template slide" if plan["_branding"].get("template_slide")
+             else "")
+          + ("  + logo" if plan["_branding"].get("logo") else ""))
 
     meta = probe(src)
     print(f"Source: {src.name}  {meta['width']}x{meta['height']} "

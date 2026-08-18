@@ -160,7 +160,7 @@ python3 scripts/bscourse.py video --ou 12345 --module "Week 3" \
 
 Simple upload holds to ~400MB/file; segment longer recordings (the
 `course-video-prep` skill produces conforming segments+captions, and the
-`brightspace-publish` skill bulk-publishes a whole prepared package —
+`brightspace-video-module-publish` skill bulk-publishes a whole prepared package —
 prefer it for full weekly packages; use `video` for one-offs).
 
 ### Assignments
@@ -244,5 +244,5 @@ Order of preference:
 
 - `course-video-prep` — turn a Zoom recording into segments + captions +
   QTI quizzes + manifest.
-- `brightspace-publish` — bulk-publish such a package as a content module
+- `brightspace-video-module-publish` — bulk-publish such a package as a content module
   (same auth, same safety rules).
