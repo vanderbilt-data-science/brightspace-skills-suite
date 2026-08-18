@@ -4,7 +4,7 @@
 
 ```
 async-package/
-├── manifest.json               # the contract consumed by brightspace-publish
+├── manifest.json               # the contract consumed by brightspace-module-publish
 ├── segment-plan.md             # human-reviewable plan (approved in Phase 1)
 ├── overview.html               # "Start here" module page
 ├── plan.json                   # input given to segment_video.py (kept for reruns)
@@ -37,6 +37,11 @@ File naming: two-digit index + kebab-case slug. The index orders items within th
   "course_line": "AI 5001 - Foundations of Generative AI",
   "module_line": "Week 1 - How LLMs Process Text",
   "intro_seconds": 6,
+  "branding": {
+    "template": "ccc",
+    "logo": "https://res.cloudinary.com/.../ccc-logo.png",
+    "template_slide": null
+  },
   "segments": [
     {
       "index": 1,
@@ -59,8 +64,33 @@ Notes:
 - `course_line` renders small at the top of the intro card; `title` is the big line; `subtitle` under it; up to 4 `bullets`.
 - The script re-encodes cuts (frame-accurate), applies loudness normalization (EBU R128, -16 LUFS) to the content, renders the intro card at source resolution/fps with a silent stereo track, and concatenates. Output goes to `videos/`, `captions/`, `intro-cards/`.
 - Caption timestamps are shifted by `intro_seconds` automatically.
+- **`branding`** (optional) sets the intro-card look. `template`:
+  `ccc` (Vanderbilt CCC colors + logo, the default when `branding` is
+  omitted) | `plain-dark` | `plain-light` | `custom`. Optional `bg`/
+  `accent`/`text`/`muted` hex overrides; `logo` (local path or URL,
+  downloaded once and cached under `<output_dir>/.brand-cache`);
+  `template_slide` (local path or URL) which, when set, is used as the
+  full card background with a legibility scrim. Match `template` to the
+  course's `course.json` template so videos and Brightspace pages share
+  one look.
 
-## manifest.json (the contract with brightspace-publish)
+## Fetching from a Zoom cloud recording (scripts/fetch_zoom.py)
+
+When the user gives a Zoom cloud link rather than local files, fetch the
+MP4 + transcript first, then feed the printed paths into `plan.json`:
+
+```bash
+# API path — env: ZOOM_ACCOUNT_ID, ZOOM_CLIENT_ID, ZOOM_CLIENT_SECRET (S2S OAuth)
+python3 scripts/fetch_zoom.py --meeting <meetingId-or-UUID> --dest <dir>
+# direct-URL path (no creds)
+python3 scripts/fetch_zoom.py --url <mp4_url> [--url <vtt_url>] --dest <dir>
+```
+
+Prefers the `TRANSCRIPT` VTT over closed captions; warns if no transcript
+exists (transcribe locally with whisper). Credentials come from the
+environment and are never printed.
+
+## manifest.json (the contract with brightspace-module-publish)
 
 ```json
 {

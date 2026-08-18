@@ -1,11 +1,11 @@
 ---
 name: course-video-prep
-description: Convert a Zoom class recording (mp4 + VTT transcript) plus presentation materials into a best-practice asynchronous course module package - short concept-aligned video segments with branded intro cards, per-segment captions, low-stakes quizzes (QTI for Brightspace import + KST instrument files), topic descriptions, and a manifest.json ready for the brightspace-publish skill. Use whenever the user wants to turn a recorded lecture, workshop, or technology demonstration into online course videos, or says things like "prepare the async content", "chunk this recording", "make course videos from this Zoom", "prep week N videos", or mentions preparing async material for the MSAI / KST-based courses. This is Tool #2 "Video Preparation" from course-development/docs/tools-to-build.md.
+description: Convert a Zoom class recording - a local mp4 + VTT transcript, OR a Zoom cloud recording link the skill fetches for you - plus presentation materials into a best-practice asynchronous course module package: short concept-aligned video segments, each opening with an intro card branded to the target course (the CCC kit, a plain kit, custom colors, or a provided template slide), per-segment captions, interspersed low-stakes check-for-understanding quizzes (QTI for Brightspace import + KST instrument files), topic descriptions, and a manifest.json ready for the brightspace-module-publish skill. Use whenever the user wants to turn a recorded lecture, workshop, or technology demonstration into online course videos, or says things like "prepare the async content", "chunk this recording", "make course videos from this Zoom", "make videos from this Zoom cloud link", "prep week N videos", or mentions preparing async material for the MSAI / KST-based courses. This is Tool #2 "Video Preparation" from course-development/docs/tools-to-build.md.
 ---
 
 # Course Video Prep
 
-Turn one long recording into a complete, reviewable async module package: a sequence of short videos (each opening with an intro card), captions, quizzes placed between videos, and descriptive text — everything the `brightspace-publish` skill needs to put it in the LMS in one motion.
+Turn one long recording into a complete, reviewable async module package: a sequence of short videos (each opening with an intro card), captions, quizzes placed between videos, and descriptive text — everything the `brightspace-module-publish` skill needs to put it in the LMS in one motion.
 
 The pedagogical model: students watch a 6-12 minute segment focused on one concept, then immediately answer 2-4 low-stakes questions about it (retrieval practice), then move to the next segment. Segment boundaries follow concepts, not the clock.
 
@@ -25,6 +25,29 @@ The only hard stop is after Phase 1: the segment plan is cheap to fix before ren
 ---
 
 ## Phase 0: Discovery & grounding
+
+**If the user gives a Zoom cloud link instead of local files, fetch first:**
+
+```bash
+# API path (reliable) — needs ZOOM_ACCOUNT_ID/CLIENT_ID/CLIENT_SECRET (S2S OAuth app):
+python3 <skill-path>/scripts/fetch_zoom.py --meeting <meetingId-or-UUID> --dest <dir>
+# or a direct download URL you copied from the recording page (no creds):
+python3 <skill-path>/scripts/fetch_zoom.py --url <mp4_url> [--url <vtt_url>] --dest <dir>
+```
+
+It downloads the MP4 and transcript VTT and prints the paths to use as
+`source_video`/`source_vtt`. If no transcript comes back, transcribe
+locally (whisper, see "Large / awkward inputs"). Passcode-protected
+share links aren't scraped — use the API path or a direct download URL.
+
+**Determine the course branding** for the intro cards. The intro card
+should match the course's Brightspace look:
+- If a `course.json` exists for the target course (from `brightspace-course`),
+  read its `course.template` (`ccc` / `plain` / `none` / custom) and use
+  the matching card preset.
+- Else ask: CCC kit, a plain look, specific brand colors, or a **template
+  slide** image to use as the card background.
+- The resolved choice becomes the `branding` block in `plan.json` (Phase 2).
 
 **Inventory the working directory** (and any paths the user names):
 
@@ -100,7 +123,32 @@ Build the plan JSON and run the bundled script (it renders intro cards, cuts, no
 python3 <skill-path>/scripts/segment_video.py plan.json
 ```
 
-Each output video = 6s branded intro card (title, "Part N of M", concepts covered, length) + the content cut. Captions are sliced from the source VTT and re-offset for the intro. The script prints a per-segment report; check every segment's final duration matches plan expectations (±2s) before moving on.
+Each output video = 6s intro card (title, "Part N of M", concepts covered, length) + the content cut. Captions are sliced from the source VTT and re-offset for the intro. The script prints a per-segment report; check every segment's final duration matches plan expectations (±2s) before moving on.
+
+**Branding the intro cards** (from the Phase 0 decision). Add a `branding`
+block to `plan.json`:
+
+```json
+"branding": {
+  "template": "ccc",              // ccc | plain-dark | plain-light | custom
+  "bg": "#1c1c1c",               // optional overrides (custom, or tweak a preset)
+  "accent": "#cfae70",
+  "logo": "https://.../logo.png", // optional; local path or URL (cached)
+  "template_slide": "intro.png"   // optional; used as the card BACKGROUND
+}
+```
+
+- Omitting `branding` defaults to the CCC preset (which pulls the CCC logo)
+  — unchanged from before.
+- `template: "ccc"` uses Vanderbilt CCC colors + logo; `plain-light`/`plain-dark`
+  are neutral; `custom` takes your `bg`/`accent` (text/muted auto-pick for
+  contrast).
+- **If `template_slide` is given, it becomes the card background** (cover-fit
+  with a legibility scrim), and the title/bullets render over it — use this
+  when the program has a fixed title-slide design.
+
+Match `template` to the course's `course.json` template so the videos and
+the Brightspace pages share one look.
 
 The intro card states what the video covers — write the card bullets as "you will be able to..." phrasing when objectives are grounded, otherwise 2-3 content bullets. Keep bullets short; they render at ~44px.
 
@@ -137,14 +185,14 @@ This verifies the manifest parses, every referenced file exists, every video has
 
 Finish with a report to the user: segment table (title, length, quiz question count), total watch time, what was dropped from the recording, where the package lives, and the one-liner to publish it:
 
-> Package ready. To upload: use the **brightspace-publish** skill on `<package-dir>` (dry-run first).
+> Package ready. To upload: use the **brightspace-module-publish** skill on `<package-dir>` (dry-run first).
 
 ## Conventions this skill must honor
 
 - **Ground, never invent scope**: concepts/objectives come from lecture.md, domain.json, or concepts.yaml when they exist. Frontmatter on generated markdown carries `generated_by: course-video-prep` and `status: draft` — faculty promote drafts, never this skill.
 - **kebab-case ids** everywhere; reuse existing concept ids rather than coining near-duplicates.
 - **Plain ASCII** in all generated text (no smart quotes, em-dashes, arrows); define every acronym at first use.
-- **Nothing uploads from this skill.** Its product is a package on disk. Upload is `brightspace-publish`'s job — keeping the seam clean is deliberate (the LMS access layer is still evolving).
+- **Nothing uploads from this skill.** Its product is a package on disk. Upload is `brightspace-module-publish`'s job — keeping the seam clean is deliberate (the LMS access layer is still evolving).
 
 ## Large / awkward inputs
 
