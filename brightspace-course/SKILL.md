@@ -1,6 +1,6 @@
 ---
 name: brightspace-course
-description: Design and build a Brightspace (D2L) course - brand new, copied from a previous course, or from a template (e.g. the CCC Online Programs page kit) - with guidance on structure and best practices. Covers the course.json manifest pipeline (map -> validate -> apply), CCC-styled pages (syllabus, module overviews, lessons), assignment creation, the quiz pipeline (quiz.json -> QTI -> import -> settings), and the rubric pipeline (rubric.json -> preview -> UI entry -> API verify). Use for "set up my course", "build the Brightspace course for X", "copy last year's course", "make it follow the CCC template", "create the quizzes", "make a rubric", or any course DESIGN work. Day-to-day upkeep of a running course is brightspace-manage; grading submissions is brightspace-grading. Writes are dry-run by default.
+description: Design and build a Brightspace (D2L) course - brand new, copied from a previous course, or from a template (e.g. the CCC Online Programs page kit) - with guidance on structure and best practices. Covers the course.json manifest pipeline (map -> validate -> apply), CCC-styled pages (syllabus, module overviews, lessons), assignment creation, the quiz pipeline (quiz.json -> QTI -> import -> settings), and the rubric pipeline (rubric.json -> preview -> UI entry -> API verify). Use for "set up my course", "build the Brightspace course for X", "copy last year's course", "make it follow the CCC template", "create the quizzes", "make a rubric", or any course DESIGN work. Always opens by asking whether the course should follow a template or be modeled on a previous course. Day-to-day upkeep of a running course is brightspace-manage; grading submissions is brightspace-grading. Writes are dry-run by default.
 ---
 
 # Brightspace Course Design & Creation
@@ -106,6 +106,33 @@ XSRF endpoint returns HTTP 200 with an empty token when cookies expired).
 Fix by re-obtaining a token (any path above).
 
 Non-default tenant: `export BRIGHTSPACE_HOST=<host>` before any command.
+
+## First questions — ask before designing anything
+
+Before proposing structure or writing a single manifest line, ask the
+user explicitly (don't assume, even if the request seems clear):
+
+1. **"Is there a template or an existing course this should be modeled
+   after?"** The three common answers:
+   - **A program template / page kit** (e.g. the CCC Online Programs
+     kit): use `setup` from the template course and/or the kit under
+     `assets/`, per `references/template-setup.md`.
+   - **A previous course of theirs** (last year's offering, a colleague's
+     master): confirm which one (`bsapi.py courses` to find the ou), then
+     `setup --source <ou> --offset-days <n>`. Ask what should carry over
+     (structure only? quizzes? rubrics?) and what gets new content.
+   - **Neither — building fresh** (often adapting in-person materials):
+     go manifest-first, and ask whether they want the `plain` page kit,
+     `ccc`, or unstyled pages.
+2. **"Which course shell are we building into?"** — confirm the target
+   ou and that it's not the live student-facing course (production rules
+   apply).
+
+Copying structure from a previous course is the *safe* reuse path —
+Course Copy moves content and settings, never student records. If they
+answer "model it on last year's" with new content, the usual shape is:
+`setup` copy → strip/replace per-week content via the manifest → roll
+dates forward.
 
 ## The workflow: map → validate → apply
 
