@@ -60,12 +60,28 @@ The tenant mints a ~1h full-scope JWT to any logged-in browser session.
    that refresh unattended for days–weeks. Skip it entirely for
    interactive use.
 
-Sanity check:
+**First command in any new environment — the preflight:**
 
 ```bash
-python3 scripts/bsapi.py whoami
+python3 scripts/bsapi.py doctor      # network first, then auth
 python3 scripts/bsapi.py courses     # find the target ou id
 ```
+
+`doctor` separates the two failure classes so you never chase the wrong
+one: exit 2 = **tenant unreachable** (a sandbox blocks egress — no token
+work will help; see below), exit 3 = network fine but **auth stale/absent**
+(fix with any token path above), exit 0 = ready.
+
+**If doctor reports the tenant unreachable (exit 2):** you are in a
+sandboxed runtime — Claude Cowork and claude.ai execute code in a cloud VM
+behind an egress-allowlist proxy that does not include the tenant. Do NOT
+retry or fiddle with tokens; tell the user plainly: run this task in
+**Claude Code** (terminal, or Claude Code inside the Claude Desktop app),
+which executes on their own machine and reaches the tenant; or an org
+admin can allowlist the tenant host under Admin Console → Organization
+Settings → Capabilities → Code Execution → Allow Network Egress (mode
+must be "All domains" — a known bug ignores extra domains in "Package
+managers only" mode; takes effect in new sessions only).
 
 Expired-session symptoms: `401` mid-run, or "empty referrerToken" (the
 XSRF endpoint returns HTTP 200 with an empty token when cookies expired).

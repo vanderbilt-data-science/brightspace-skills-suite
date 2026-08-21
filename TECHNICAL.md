@@ -142,10 +142,17 @@ skill folders into `~/.claude/skills/` (personal) or `.claude/skills/`
 2. Click **Install** on each skill you want.
 3. Connect the **Claude in Chrome** extension for UI-only steps.
 
-Runs scripts locally, so it reaches your logged-in session. **Known limit:**
-in group testing, Cowork's tighter sandbox could not reach the Brightspace
-tenant that Claude Code (same desktop app) reached fine — see issue #1. If
-Cowork can't connect, switch that task to Claude Code.
+**Known limit (diagnosed — issue #1):** Cowork executes skill code in a
+*cloud VM* behind an egress-allowlist proxy, and the Brightspace tenant is
+not on the allowlist — so API calls fail at the network level even with a
+valid token, while Cowork's in-app browser (exempt from egress rules) logs
+in fine. `bsapi.py doctor` detects this case (exit 2) and says so. No
+user-level fix; an Enterprise admin can allowlist the tenant host (Admin
+Console → Organization Settings → Capabilities → Code Execution → Allow
+Network Egress, mode "All domains" — the extra-domains list is ignored in
+"Package managers only" mode due to a known bug; new sessions only).
+Otherwise run the task in Claude Code — including Claude Code inside the
+same Desktop app, which executes on your machine and reaches the tenant.
 
 ### Claude web chat (claude.ai)
 1. On a paid plan, enable **Code execution** and **Skills**, then upload
@@ -183,6 +190,12 @@ Closest non-Claude fit — it runs the scripts directly:
 ## Command reference & examples
 
 These are what the agent runs for you; you normally never type them.
+
+**Preflight a new environment** (network first, then auth — exit 2 means
+the sandbox blocks egress to the tenant, exit 3 means re-auth needed)
+```bash
+python3 brightspace-course/scripts/bsapi.py doctor
+```
 
 **Audit a course**
 ```bash

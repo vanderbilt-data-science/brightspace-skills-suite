@@ -11,6 +11,9 @@ Token sources, tried in order:
                                        login helper) -> mint a fresh JWT
 
 Run directly for auth utilities:
+  bsapi.py doctor          preflight: can this environment reach the
+                           tenant at all, and is there usable auth?
+                           Run this FIRST in any new environment.
   bsapi.py whoami          mint/load a token, print the logged-in user
   bsapi.py courses         list enrolled course offerings with ou ids
   bsapi.py token           print a bearer token (for curl)
@@ -55,6 +58,26 @@ LOGIN_HINT = (
     "     storage_state.json, then re-run this command."
 )
 
+UNREACHABLE_HINT = (
+    "https://{host} is unreachable from this environment ({kind}).\n"
+    "This failed at the network level, BEFORE any Brightspace login — so\n"
+    "fixing tokens/cookies will not help. The tenant itself is on the\n"
+    "public internet; what blocks it is the sandbox: Claude Cowork and\n"
+    "claude.ai run code in a cloud VM whose outbound traffic must pass an\n"
+    "egress-allowlist proxy, and the tenant is not on the allowlist.\n"
+    "Fixes, best first:\n"
+    "  1. Run this task in Claude Code — the terminal, or Claude Code\n"
+    "     inside the Claude Desktop app. It executes on the user's own\n"
+    "     machine with normal network access (verified working surface).\n"
+    "  2. Org-admin fix for Cowork: Admin Console -> Organization\n"
+    "     Settings -> Capabilities -> Code Execution -> Allow Network\n"
+    "     Egress: add {host} to 'Additional allowed domains' AND set the\n"
+    "     mode to 'All domains' (a known bug ignores the extra domains in\n"
+    "     'Package managers only' mode). Applies to NEW sessions only.\n"
+    "Do not retry in this session — the proxy will keep refusing.\n"
+    "Confirm the diagnosis any time with: python3 bsapi.py doctor"
+)
+
 _requests = None
 
 
@@ -87,9 +110,38 @@ def get_requests():
     return _requests
 
 
-def die(msg):
+def die(msg, code=1):
+    sys.stdout.flush()
     print(f"ERROR: {msg}", file=sys.stderr)
-    sys.exit(1)
+    sys.exit(code)
+
+
+def classify_net_error(e):
+    """Name the network-level failure mode, or None if e isn't one."""
+    requests = get_requests()
+    if isinstance(e, requests.exceptions.SSLError):
+        return "TLS failure — likely an intercepting proxy in the sandbox"
+    if isinstance(e, requests.exceptions.ProxyError):
+        return "the sandbox's proxy refused the connection"
+    if isinstance(e, requests.exceptions.ConnectTimeout):
+        return "connection timed out — egress to this host is filtered"
+    if isinstance(e, requests.exceptions.ReadTimeout):
+        return "connected but the response timed out"
+    if isinstance(e, requests.exceptions.ConnectionError):
+        s = str(e)
+        if ("Name or service not known" in s or "NameResolutionError" in s
+                or "nodename nor servname" in s or "getaddrinfo" in s):
+            return "DNS lookup blocked or failed"
+        return "connection refused/reset"
+    if isinstance(e, requests.exceptions.RequestException):
+        return f"request failed ({type(e).__name__})"
+    return None
+
+
+def net_die(e):
+    """Exit with the sandbox-egress explanation for a network failure."""
+    kind = classify_net_error(e) or str(e)
+    die(UNREACHABLE_HINT.format(host=HOST, kind=kind), code=2)
 
 
 # ------------------------------------------------------------ token sources
@@ -140,7 +192,10 @@ def _mint_from_cookies():
         return None
     s = requests.Session()
     s.cookies = jar
-    r = s.get(f"{BASE}/d2l/lp/auth/xsrf-tokens", timeout=30)
+    try:
+        r = s.get(f"{BASE}/d2l/lp/auth/xsrf-tokens", timeout=30)
+    except requests.exceptions.RequestException as e:
+        net_die(e)
     if r.status_code != 200:
         return None
     xsrf = r.json().get("referrerToken", "")
@@ -177,8 +232,12 @@ class BS:
         self.s.headers["Authorization"] = f"Bearer {token or get_token()}"
 
     def req(self, method, path, ok=(200, 201), **kw):
-        r = self.s.request(method, f"{BASE}{path}",
-                           timeout=kw.pop("timeout", 120), **kw)
+        requests = get_requests()
+        try:
+            r = self.s.request(method, f"{BASE}{path}",
+                               timeout=kw.pop("timeout", 120), **kw)
+        except requests.exceptions.RequestException as e:
+            net_die(e)
         if ok and r.status_code not in ok:
             if r.status_code == 401:
                 die(f"401 on {path} — the token expired or is invalid.\n"
@@ -281,10 +340,75 @@ def import_browser_cookies(browser="chrome"):
           f"-> {STATE}")
 
 
+def doctor():
+    """Preflight for a new environment: reachability first, then auth.
+
+    Exit codes: 0 = reachable + authenticated, 2 = tenant unreachable
+    (sandbox egress — auth fixes won't help), 3 = reachable but no
+    usable auth (fix with any token path).
+    """
+    requests = get_requests()
+    print(f"doctor: tenant https://{HOST}")
+    proxies = {k: os.environ[k] for k in os.environ
+               if k.lower() in ("http_proxy", "https_proxy", "all_proxy")}
+    if proxies:
+        print(f"  note: proxy env set ({', '.join(sorted(proxies))}) — "
+              "traffic is mediated by a sandbox/corporate proxy")
+
+    # 1. Reachability — /d2l/api/versions/ answers anonymously, so this
+    #    isolates the network layer from the auth layer.
+    try:
+        r = requests.get(f"{BASE}/d2l/api/versions/", timeout=15)
+        if r.status_code == 200 and r.json():
+            print("  PASS network: tenant reachable (anonymous "
+                  "/d2l/api/versions/ -> 200)")
+        else:
+            print(f"  WARN network: reachable but versions endpoint "
+                  f"returned {r.status_code} — a proxy may be "
+                  "intercepting; treat API results with suspicion")
+    except requests.exceptions.RequestException as e:
+        kind = classify_net_error(e) or str(e)
+        print(f"  FAIL network: {kind}")
+        die(UNREACHABLE_HINT.format(host=HOST, kind=kind), code=2)
+
+    # 2. Auth material on this machine — resolve it to a working token.
+    token = _token_from_env()
+    src = "BRIGHTSPACE_TOKEN env var" if token else None
+    if not token:
+        token = _token_from_cache()
+        if token:
+            src = f"cached token ({TOKEN_CACHE})"
+    if not token and STATE.exists():
+        token = _mint_from_cookies()
+        if token:
+            save_token(token)
+            src = f"token minted from saved cookies ({STATE})"
+        else:
+            print(f"  FAIL auth: saved cookies exist ({STATE}) but are "
+                  "expired — could not mint a token from them")
+            die("network is fine; the session is stale. Re-auth by any "
+                "path below.\n" + LOGIN_HINT, code=3)
+    if not token:
+        print("  FAIL auth material: no env token, no fresh cache, no "
+              "saved cookies")
+        die("network is fine; there is just nothing to log in with.\n"
+            + LOGIN_HINT, code=3)
+    print(f"  PASS auth material: {src}")
+
+    # 3. Prove the token actually works.
+    me = whoami(BS(token))
+    print(f"  PASS auth: {me.get('FirstName')} {me.get('LastName')} "
+          f"(UserId {me.get('Identifier')})")
+    print("OK: environment ready")
+
+
 # -------------------------------------------------------------------- main
 
 def main():
     cmd = sys.argv[1] if len(sys.argv) > 1 else "whoami"
+    if cmd == "doctor":
+        doctor()
+        return
     if cmd == "import-cookies":
         browser = sys.argv[2] if len(sys.argv) > 2 else "chrome"
         import_browser_cookies(browser)
@@ -316,8 +440,8 @@ def main():
     elif cmd == "versions":
         print(json.dumps(bs.jget("/d2l/api/versions/"), indent=1))
     else:
-        die(f"unknown command {cmd} (use whoami | courses | token | "
-            "save-token | import-cookies | versions)")
+        die(f"unknown command {cmd} (use doctor | whoami | courses | "
+            "token | save-token | import-cookies | versions)")
 
 
 if __name__ == "__main__":
