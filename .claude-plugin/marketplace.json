@@ -1,0 +1,39 @@
+{
+  "$schema": "https://code.claude.com/schemas/marketplace.json",
+  "name": "brightspace-skills",
+  "owner": {
+    "name": "Vanderbilt Data Science Institute",
+    "url": "https://github.com/vanderbilt-data-science"
+  },
+  "description": "Brightspace (D2L) agent skills for instructors: build courses, prep async video modules, and publish them - in plain English.",
+  "version": "1.0.0",
+  "plugins": [
+    {
+      "name": "brightspace-course",
+      "source": "./brightspace-course",
+      "description": "Design and build a Brightspace course - brand new, copied from a previous course, or from a template - including pages, assignments, quizzes, and rubrics.",
+      "category": "learning-design",
+      "tags": ["brightspace", "d2l", "course-design", "lms"],
+      "strict": false,
+      "author": { "name": "Vanderbilt Data Science Institute" }
+    },
+    {
+      "name": "course-video-prep",
+      "source": "./course-video-prep",
+      "description": "Turn a Zoom class recording into short course videos with branded intro cards, captions, and check-for-understanding quizzes.",
+      "category": "learning-design",
+      "tags": ["video", "zoom", "async", "captions", "qti"],
+      "strict": false,
+      "author": { "name": "Vanderbilt Data Science Institute" }
+    },
+    {
+      "name": "brightspace-video-module-publish",
+      "source": "./brightspace-video-module-publish",
+      "description": "Publish a prepared video package into a Brightspace course as a content module, verifying every upload.",
+      "category": "learning-design",
+      "tags": ["brightspace", "d2l", "video", "publish", "lms"],
+      "strict": false,
+      "author": { "name": "Vanderbilt Data Science Institute" }
+    }
+  ]
+}

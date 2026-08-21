@@ -81,33 +81,43 @@ This was built by an instructor, with an instructor's worries in mind:
 
 ---
 
-## Getting started: install in Claude Desktop
+## Getting started
 
-One-time setup, about five minutes. You need the **Claude Desktop app**
-(Mac or Windows) on a paid plan, and a browser where you're logged in to
-Brightspace.
+No downloading, no zipping — the skills install straight from this page.
+One-time setup, about two minutes.
 
-1. **Download the skills.** On this page, click the green **Code** button →
-   **Download ZIP**, then unzip it (double-click the downloaded file).
-2. **Zip each skill folder.** Inside the unzipped folder, right-click each
-   of these folders and choose **Compress** (Mac) / **Send to → Compressed
-   folder** (Windows):
-   - `brightspace-course` — build and copy courses *(start here)*
-   - `course-video-prep` — turn recordings into course videos *(optional)*
-   - `brightspace-video-module-publish` — publish those videos *(optional)*
-3. **Turn on the features.** In Claude Desktop, open **Settings →
-   Capabilities** and enable **Code execution** and **Skills**.
-4. **Upload the skills.** Still under **Settings → Capabilities → Skills**,
-   click **Upload skill** and add each zip from step 2.
-5. **Try it.** Open a new chat and say something like:
-   > *"Copy my course from last year into my new fall shell — keep the
-   > structure, move all the dates forward a year."*
+**Easiest: ask Claude to do it.** In **Claude Code** (in the Claude Desktop
+app, or the terminal), just say:
 
-The assistant will walk you through connecting to Brightspace the first
-time (it uses **your own login** — details in the
-**[Technical Guide](TECHNICAL.md)**, which also covers Claude Code and
-other platforms). If a colleague or your program's tech contact already set
-this up for you, just open Claude and start asking.
+> *"Install the skills from
+> https://github.com/vanderbilt-data-science/brightspace-skills-suite"*
+
+Claude installs them for you, and they're ready in your next chat.
+(Prefer typing it yourself? The two commands are
+`/plugin marketplace add vanderbilt-data-science/brightspace-skills-suite`,
+then `/plugin` to pick and install the skills.)
+
+**In Cowork** (the Claude Desktop app's file-working mode): open
+**Customize → Plugins → Add marketplace**, paste
+`vanderbilt-data-science/brightspace-skills-suite`, and click **Install**
+on the skills you want. No files to handle.
+
+**On claude.ai in the browser:** skills there are uploaded manually in
+Settings — the steps are in the **[Technical Guide](TECHNICAL.md)**.
+
+Then make sure you're logged in to Brightspace in your browser, open a new
+chat, and try:
+
+> *"Copy my course from last year into my new fall shell — keep the
+> structure, move all the dates forward a year."*
+
+The assistant walks you through connecting to Brightspace the first time
+(it uses **your own login**, nothing more). If a colleague already set this
+up for you, just open Claude and start asking.
+
+> **Tip:** the full experience — including help with the handful of
+> Brightspace steps that need clicks in the browser — is in **Claude
+> Code**, which is built into the Claude Desktop app.
 
 ---
 

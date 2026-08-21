@@ -117,28 +117,41 @@ steps) is on **Claude Code** and **Claude Cowork**, which run Python locally
 and can connect Claude-in-Chrome. Other platforms run the same Python with
 more manual steps.
 
-### Claude Code (CLI)
-Skills live in `~/.claude/skills/` (personal) or `.claude/skills/` (project):
-```bash
-git clone https://github.com/vanderbilt-data-science/brightspace-skills-suite.git
-cd brightspace-skills-suite
-for s in brightspace-course course-video-prep brightspace-video-module-publish; do
-  ln -s "$PWD/$s" "$HOME/.claude/skills/$s"
-done
+The repo is a **Claude plugin marketplace** (`.claude-plugin/marketplace.json`
+maps each skill folder to an installable plugin), so Claude Code and Cowork
+install directly from GitHub — no cloning, zipping, or uploading.
+
+### Claude Code (CLI or in the desktop app) — recommended
+Either just tell Claude — *"install the skills from
+https://github.com/vanderbilt-data-science/brightspace-skills-suite"* — or
+run it yourself:
 ```
-Then just ask in a session — skills trigger by description.
+/plugin marketplace add vanderbilt-data-science/brightspace-skills-suite
+/plugin   # browse the brightspace-skills marketplace and install each skill
+```
+(Non-interactive equivalent: `claude plugin marketplace add …` /
+`claude plugin install brightspace-course@brightspace-skills`.)
+
+For development, the older path still works — clone the repo and symlink
+skill folders into `~/.claude/skills/` (personal) or `.claude/skills/`
+(project); skills trigger by description either way.
 
 ### Claude Cowork (Claude Desktop app, Mac/Windows)
-1. Enable **Code execution** and **Skills** in **Settings → Capabilities**.
-2. Zip each skill folder (`zip -r brightspace-course.zip brightspace-course`)
-   and upload under **Settings → Capabilities → Skills → Upload skill**.
+1. Open **Customize → Plugins → Add marketplace** and enter
+   `vanderbilt-data-science/brightspace-skills-suite`.
+2. Click **Install** on each skill you want.
 3. Connect the **Claude in Chrome** extension for UI-only steps.
 
-Runs scripts locally, so it reaches your logged-in session — full experience.
+Runs scripts locally, so it reaches your logged-in session. **Known limit:**
+in group testing, Cowork's tighter sandbox could not reach the Brightspace
+tenant that Claude Code (same desktop app) reached fine — see issue #1. If
+Cowork can't connect, switch that task to Claude Code.
 
 ### Claude web chat (claude.ai)
-1. On a paid plan, enable **Code execution** and **Skills**, then upload each
-   zipped skill folder.
+1. On a paid plan, enable **Code execution** and **Skills**, then upload
+   each skill zipped individually (the zip must contain the skill *folder*
+   wrapping `SKILL.md` — e.g. `brightspace-course.zip → brightspace-course/
+   → SKILL.md`; a whole-repo zip won't import).
 2. The web sandbox can't see your browser — authenticate by **pasting a
    token** (path 1) so the sandbox calls the API directly.
 3. No Chrome extension in the sandbox, so UI-only steps are done by you from
