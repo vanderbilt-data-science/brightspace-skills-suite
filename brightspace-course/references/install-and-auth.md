@@ -34,16 +34,26 @@ const x = await fetch('/d2l/lp/auth/xsrf-tokens',{credentials:'same-origin'}).th
   headers:{'X-Csrf-Token':x.referrerToken,'Content-Type':'application/x-www-form-urlencoded'},
   body:'scope=*:*:*'}).then(r=>r.json())).access_token
 ```
-then: `printf '%s' '<token>' | python3 bsapi.py save-token`.
+Claude then writes that token to a scratch file and feeds it in via stdin —
+`python3 bsapi.py save-token < /path/to/tok && rm /path/to/tok`. **Never
+inline the token as a shell argument** (`printf '%s' '<token>' | ...`): it
+lands in shell history and argv, and permission classifiers block
+credential-shaped arguments outright.
 No Playwright, no extension, no cookie decryption. Token lasts ~1h; repeat
 when it expires. **This is the universal fallback.**
 
 ### 2. Claude-in-Chrome mints it (best in Cowork / when the extension is on)
 Claude runs the same fetch in the user's tab and caches the result — fully
 automated, nothing for the user to paste. Steps: `references/chrome-auth.md`.
-Needs the extension with JS permission on the Brightspace domain. (In
-Claude Code auto-mode the classifier may block the scripted fetch; approve
-it, or use path 1.)
+Needs the extension with JS permission on the Brightspace domain.
+
+In Claude Code auto-mode the classifier may block the scripted fetch —
+**non-deterministically**, so a clean run is no guarantee. Fix it with an
+`ask` permission rule (`mcp__Claude_Browser__javascript_tool`), which
+overrides the classifier and turns the silent denial into a prompt; see the
+**Failure modes** section of `references/chrome-auth.md`. Never route the
+mint through a different browser surface to dodge a denial. Otherwise use
+path 1.
 
 ### 3. Import cookies from the browser profile (`import-cookies`)
 `python3 bsapi.py import-cookies safari|firefox|edge|brave` reads the

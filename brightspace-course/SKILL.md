@@ -1,6 +1,6 @@
 ---
 name: brightspace-course
-description: Design and build a Brightspace (D2L) course - brand new, copied from a previous course, or from a template (e.g. the CCC Online Programs page kit) - with guidance on structure and best practices. Covers the course.json manifest pipeline (map -> validate -> apply), CCC-styled pages (syllabus, module overviews, lessons), assignment creation, the quiz pipeline (quiz.json -> QTI -> import -> settings), and the rubric pipeline (rubric.json -> preview -> UI entry -> API verify). Use for "set up my course", "build the Brightspace course for X", "copy last year's course", "make it follow the CCC template", "create the quizzes", "make a rubric", or any course DESIGN work. Always opens by asking whether the course should follow a template or be modeled on a previous course. Day-to-day upkeep of a running course is brightspace-manage; grading submissions is brightspace-grading. Writes are dry-run by default.
+description: Design and build a Brightspace (D2L) course - brand new, copied from a previous course, or from a template (e.g. the CCC Online Programs page kit) - with guidance on structure and best practices. Covers the course.json manifest pipeline (map -> validate -> apply), CCC-styled pages (syllabus, module overviews, lessons), assignment creation, the quiz pipeline (quiz.json -> QTI -> import -> settings), and the rubric pipeline (rubric.json -> preview -> UI entry -> API verify). Use for "set up my course", "build the Brightspace course for X", "copy last year's course", "make it follow the CCC template", "create the quizzes", "make a rubric", or any course DESIGN work. Always opens by asking for the course URL, opening that tenant in the browser for the user to log in, and confirming whose account it landed on - then asks whether the course should follow a template or be modeled on a previous course. Day-to-day upkeep of a running course is brightspace-manage; grading submissions is brightspace-grading. Writes are dry-run by default.
 ---
 
 # Brightspace Course Design & Creation
@@ -48,6 +48,59 @@ none of that — keep it that way:
 5. **Tag test artifacts.** When testing, pass `--tag bstest-<runid>` so
    everything created is findable and removable.
 
+## Step 0 — the opening move (before any design talk)
+
+When the user asks for anything course-building — *"help me build out a
+course in Brightspace"*, *"set up my fall course"*, *"copy last year's"* —
+**open with the URL question and get them logged in first.** The URL alone
+resolves the tenant *and* the course with no auth and no API call, and
+everything downstream (`doctor`, `courses`, every verb) needs a live token
+anyway.
+
+1. **Ask for the course URL.** "Open the course in Brightspace and paste
+   the URL from your address bar." If the shell doesn't exist yet, ask for
+   the tenant host instead and find the ou later with `bsapi.py courses`.
+
+2. **Parse host + ou from it.** The ou is the numeric id:
+
+   | URL shape | ou |
+   |---|---|
+   | `https://<host>/d2l/home/12345` | `12345` |
+   | `https://<host>/d2l/le/content/12345/home` | `12345` |
+   | `https://<host>/d2l/lms/…?ou=12345` | `12345` (query param) |
+   | `https://<host>/d2l/home` | none — tenant only |
+
+   In practice: the first run of digits after `/d2l/home/` or
+   `/d2l/le/content/`, else an `ou=` query param. **Echo back what you
+   parsed** ("tenant `<host>`, course ou `12345`") so they can correct it.
+   Non-default tenant → `export BRIGHTSPACE_HOST=<host>` before any command.
+
+3. **Check whether you even need a login** — `bsapi.py doctor`. Exit 0
+   means a cached token is still live: **skip to step 6**, no browser and
+   no SSO needed. Exit 3 = auth stale or absent, continue to step 4. Exit
+   2 = tenant unreachable, which no amount of logging in will fix (see
+   the sandbox note below). Don't drag the user through Duo for a session
+   you already have.
+
+4. **Open that tenant in the Browser pane and let the user log in.**
+   `preview_start` on `https://<host>/d2l/home`, then **wait for them to
+   complete SSO + Duo themselves** — never type credentials, never touch
+   the password fields. Poll until the tab settles on `/d2l/home`. It may
+   land instantly with no prompt (an existing SSO session is silently
+   re-admitted) — that's fine; a live session is all you need.
+
+5. **Mint and cache the token** per `references/chrome-auth.md`, then
+   `bsapi.py whoami`. **Read the name back to the user** — it's the
+   cheapest guard against building into the wrong person's course.
+
+6. **Name the course back to them.** `bsapi.py courses`, match the ou from
+   step 2, and confirm: *"building into Intro to Data Science, Fall 2026 —
+   right?"* Production rules apply on `brightspace.vanderbilt.edu`.
+
+Then move to **First questions** below. Sketching structure before you have
+a token is fine — but don't run a command that touches the tenant until
+`whoami` has printed a name.
+
 ## Install & auth — minimal, no Playwright required
 
 **Install footprint: Python 3 + `requests` (auto-installed). Nothing
@@ -78,7 +131,8 @@ The tenant mints a ~1h full-scope JWT to any logged-in browser session.
    that refresh unattended for days–weeks. Skip it entirely for
    interactive use.
 
-**First command in any new environment — the preflight:**
+**The preflight (Step 0 · step 3) — the first command that touches the
+tenant, in any new environment:**
 
 ```bash
 python3 scripts/bsapi.py doctor      # network first, then auth
@@ -124,9 +178,10 @@ user explicitly (don't assume, even if the request seems clear):
    - **Neither — building fresh** (often adapting in-person materials):
      go manifest-first, and ask whether they want the `plain` page kit,
      `ccc`, or unstyled pages.
-2. **"Which course shell are we building into?"** — confirm the target
-   ou and that it's not the live student-facing course (production rules
-   apply).
+2. **"Which course shell are we building into?"** — normally already
+   answered by the URL from Step 0. Confirm the ou *by name* (from
+   `bsapi.py courses`, not just the number) and that it's not the live
+   student-facing course (production rules apply).
 
 Copying structure from a previous course is the *safe* reuse path —
 Course Copy moves content and settings, never student records. If they
