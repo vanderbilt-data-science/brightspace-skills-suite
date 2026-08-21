@@ -189,6 +189,33 @@ author pages from `plain`/`ccc`/none. For CCC programs specifically, the
 kit is a **page-design kit** (`assets/ccc-templates/`) with a per-module
 rhythm — see `references/template-setup.md`.
 
+**Copy rules (the classic Brightspace copy mishaps, prevented):**
+
+- **Copy into a shell ONCE.** Course Copy is not idempotent — re-running
+  it duplicates every module, topic, and grade item, and cleanup is
+  manual. If something's missing after a copy, add it via the manifest
+  or verbs; never re-run `setup` into the same shell. Before any copy,
+  `map` the destination — if it isn't empty, stop and confirm with the
+  user.
+- **Leave old announcements behind.** Copying `News` brings last term's
+  announcements, which can post immediately and confuse students. Omit
+  `News` from `--components` unless the user explicitly wants them.
+- **Then audit.** After the copy job completes, run the post-copy audit
+  below before calling it done.
+
+**Post-copy / post-build audit (always):**
+
+1. `map --ou <dest> -v` — the tree now marks `HIDDEN`/locked items and
+   start/end/due dates, and flags the hidden-item count. Check: did all
+   dates roll (offset applied, nothing left in last year)? Anything
+   unexpectedly hidden that students will need? Stale announcements
+   (count shows in the summary)?
+2. Items with **no** dates don't get offset (nothing to shift) — scan
+   for assignments/quizzes that *should* have due dates but don't.
+3. Have the user spot-check in **View as Student** (Brightspace's
+   preview) — it won't show date-restricted items, so pair it with the
+   map flags rather than trusting it alone.
+
 ### Syllabus, notes, pages, any file
 
 ```bash

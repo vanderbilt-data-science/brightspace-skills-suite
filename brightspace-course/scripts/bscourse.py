@@ -83,18 +83,39 @@ def module_structure(bs, ou, module_id):
                    "/structure/")
 
 
+def _content_flags(e):
+    """Visibility/date markers for a content entry (module or topic) —
+    the switches behind "why can't students see X"."""
+    flags = []
+    if e.get("IsHidden"):
+        flags.append("HIDDEN")
+    if e.get("IsLocked"):
+        flags.append("locked")
+    for keys, label in ((("StartDate", "ModuleStartDate"), "from"),
+                        (("EndDate", "ModuleEndDate"), "until"),
+                        (("DueDate", "ModuleDueDate"), "due")):
+        v = next((e[k] for k in keys if e.get(k)), None)
+        if v:
+            flags.append(f"{label} {v[:10]}")
+    return flags
+
+
 def walk_content(bs, ou):
-    """Yield (depth, kind, id, title, extra) over the whole content tree."""
+    """Yield (depth, kind, id, title, extra) over the whole content tree.
+    extra carries type/url plus HIDDEN/locked/date flags."""
     def rec(entries, depth):
         for e in entries:
+            flags = _content_flags(e)
             if e.get("Type") == 0:
-                yield (depth, "module", e.get("Id"), e.get("Title"), "")
+                yield (depth, "module", e.get("Id"), e.get("Title"),
+                       ", ".join(flags))
                 yield from rec(module_structure(bs, ou, e["Id"]), depth + 1)
             else:
                 tt = {1: "file", 2: "link", 3: "link", 5: "scorm"}.get(
                     e.get("TopicType"), f"tt{e.get('TopicType')}")
+                base = f"{tt} {e.get('Url') or ''}".strip()
                 yield (depth, "topic", e.get("Id"), e.get("Title"),
-                       f"{tt} {e.get('Url') or ''}".strip())
+                       ", ".join([base] + flags) if flags else base)
     yield from rec(root_modules(bs, ou), 0)
 
 
@@ -178,12 +199,14 @@ def create_link_topic(bs, ou, module_id, title, url, description=""):
 
 def cmd_map(bs, args):
     print(f"Content tree for ou={args.ou} on {HOST}:")
-    n_mod = n_top = 0
+    n_mod = n_top = n_hidden = 0
     for depth, kind, oid, title, extra in walk_content(bs, args.ou):
         n_mod += kind == "module"
         n_top += kind == "topic"
+        hidden = "HIDDEN" in (extra or "")
+        n_hidden += hidden
         pad = "  " * depth
-        note = f"  ({extra})" if extra and args.verbose else ""
+        note = f"  ({extra})" if extra and (args.verbose or hidden) else ""
         mark = "▸" if kind == "module" else "·"
         print(f"  {pad}{mark} {title}  [{kind} {oid}]{note}")
     quizzes = []
@@ -198,10 +221,14 @@ def cmd_map(bs, args):
     news_items = news.json() if news.status_code == 200 else []
     print(f"\n  {n_mod} modules, {n_top} topics, {len(quizzes)} quizzes, "
           f"{len(folders)} assignments, {len(news_items)} announcements")
+    if n_hidden:
+        print(f"  ! {n_hidden} HIDDEN content item(s) — invisible to "
+              "students (as is everything inside a hidden module)")
     if args.verbose:
         for q in quizzes:
+            due = q.get("DueDate")
             print(f"    quiz {q.get('QuizId') or q.get('Id')}: "
-                  f"{q.get('Name')}")
+                  f"{q.get('Name')}" + (f" (due {due})" if due else ""))
         for f in folders:
             print(f"    assignment {f.get('Id')}: {f.get('Name')} "
                   f"(due {f.get('DueDate')})")
