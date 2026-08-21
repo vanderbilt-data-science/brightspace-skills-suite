@@ -57,6 +57,15 @@ LOGIN_HINT = ("No Brightspace session. Get a token (paste one or let\n"
               "  Claude-in-Chrome mint it) per brightspace-course/references/\n"
               "  install-and-auth.md, or run the optional Playwright login:\n"
               "  python3 tools/login.py")
+UNREACHABLE_HINT = (
+    f"https://{HOST} is unreachable from this environment — the request\n"
+    "failed at the network level, before any login, so auth fixes won't\n"
+    "help. This means a sandbox blocks outbound traffic to the tenant\n"
+    "(Claude Cowork / claude.ai run code in a cloud VM behind an\n"
+    "egress-allowlist proxy). Run this task in Claude Code instead (the\n"
+    "terminal, or Claude Code inside the Claude Desktop app), or have an\n"
+    "org admin allowlist the host for Code Execution network egress.\n"
+    "Do not retry here — the proxy will keep refusing.")
 
 LP = "1.57"
 LE = "1.93"
@@ -89,7 +98,10 @@ def mint_token(session=None):
     requests = get_requests()
     s = session or requests.Session()
     s.cookies = load_cookies()
-    r = s.get(f"{BASE}/d2l/lp/auth/xsrf-tokens", timeout=30)
+    try:
+        r = s.get(f"{BASE}/d2l/lp/auth/xsrf-tokens", timeout=30)
+    except requests.exceptions.RequestException as e:
+        die(f"{UNREACHABLE_HINT}\n({type(e).__name__}: {e})")
     if r.status_code != 200:
         die(f"xsrf-tokens returned {r.status_code}\n{LOGIN_HINT}")
     xsrf = r.json().get("referrerToken", "")

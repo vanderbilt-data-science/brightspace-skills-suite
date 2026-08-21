@@ -77,10 +77,22 @@ you never run headless, you can delete Playwright from the picture.
 
 ## Can this run in Claude Cowork (Desktop app)?
 
-Yes. Cowork executes the Python and auto-installs `requests`, so the whole
-API surface — manifest apply, quiz pipeline, rubric validate/preview/verify,
-grading pull/feedback — runs there directly. Auth: path 2 if the Chrome
-extension is connected to the desktop app (best UX), otherwise path 1
-(paste a token). The UI-only tail (rubric *creation*, quiz pools) uses
-Claude-in-Chrome when connected, or the printed `entry-plan` steps for the
-user. No Playwright needed in Cowork.
+**Generally no — and the failure is network, not auth.** Group testing
+(issue #1) plus Anthropic's architecture docs settle it: Cowork executes
+skill code in a **cloud VM**, and all of that VM's outbound traffic must
+pass an egress-allowlist proxy. The Brightspace tenant is on the public
+internet, but it is not on the allowlist, so every API call fails at the
+network level no matter how valid the token is. (Cowork's in-app browser
+is exempt from the egress rules — it can log in to Brightspace fine —
+which is why auth *looks* like it works right up until the first script
+API call.) There is no user-level unblock; an Enterprise org admin can
+allowlist the tenant host (Admin Console → Organization Settings →
+Capabilities → Code Execution → Allow Network Egress, mode "All domains" —
+a known bug ignores the extra-domains list in "Package managers only"
+mode; new sessions only).
+
+Run `python3 scripts/bsapi.py doctor` to prove which case you're in
+(exit 2 = egress blocked, exit 3 = just stale auth). The reliable surface
+is **Claude Code** — the terminal, or Claude Code inside the same Desktop
+app — which executes on the user's machine with normal network access.
+Everything in this skill is verified working there.
