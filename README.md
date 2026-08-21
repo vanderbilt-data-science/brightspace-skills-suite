@@ -27,22 +27,24 @@ assignments, and can build quizzes and rubrics — matching a template if your
 program has one, or starting clean. Reusing last term's course? Just say
 *"copy my course from last year and move all the dates forward a year."*
 
-### 📣 Keep it running through the semester
-> *"Post an announcement reminding everyone Lab 2 is due Friday."*
-> *"Move the midterm deadline to the following Monday."*
-> *"Who hasn't turned in the essay yet?"*
+### 🎬 Turn recordings into course videos
+> *"Turn this Zoom recording into short course videos with captions and a
+> quick check-for-understanding quiz, and publish them as Module 3."*
 
-Announcements, this week's slides and notes, deadline changes, quick checks
-on who's submitted — the day-to-day upkeep that usually eats your afternoon.
+It chunks a class recording into concept-sized segments, adds branded intro
+cards and captions, builds low-stakes quizzes, and publishes the whole
+package into your course.
 
-### ✅ Grade — with you in control
-> *"Pull the Lab 1 submissions and draft feedback and scores against the
-> rubric."*
+### 🔒 Coming after privacy review: grading & day-to-day class management
 
-It reads what students turned in and drafts a grade and comments for each
-one. You review the whole list, change anything you like, and **nothing
-reaches a student until you say "publish."** Draft feedback is invisible to
-students until you approve it.
+We've also built skills that grade submissions with AI-drafted feedback and
+handle in-semester upkeep (announcements, deadline moves, "who hasn't
+submitted?"). Because those touch **student data**, they are held out of
+this main page while we finish a privacy and security review (FERPA /
+Vanderbilt data-classification). They live on the
+[`student-data-skills`](../../tree/student-data-skills) branch and will move
+here once reviewed and approved. Please don't use them with real student
+data until then.
 
 ---
 
@@ -55,10 +57,10 @@ anything** — so you're never surprised by what lands in your course.
 A few real examples of things you can just say:
 
 - *"Make my Brightspace course match this syllabus document."*
+- *"Copy last year's course into my new shell — same structure, but I'll
+  give you new content week by week."*
 - *"Add a low-stakes quiz for Module 3 with five questions from the readings."*
 - *"Create a grading rubric for the final project and attach it."*
-- *"Draft a welcome announcement and let me look before it posts."*
-- *"How engaged is my class — who's fallen behind on submissions?"*
 
 ---
 
@@ -67,8 +69,9 @@ A few real examples of things you can just say:
 This was built by an instructor, with an instructor's worries in mind:
 
 - **You approve before anything happens.** Every change is previewed first.
-- **Grades stay private until you're ready.** Feedback is drafted invisibly;
-  you publish when you've reviewed it.
+- **Student data stays out until it's proven safe.** The features that read
+  student work or grades are parked on a separate branch pending a privacy
+  review — they're not part of the default install.
 - **It won't touch your live course by accident.** Working on the real,
   student-facing course takes a deliberate, extra "yes."
 - **It double-checks its own work.** After making a change, it reads it back
@@ -78,22 +81,33 @@ This was built by an instructor, with an instructor's worries in mind:
 
 ---
 
-## Getting started
+## Getting started: install in Claude Desktop
 
-You need two things: an AI assistant with these skills added, and to be
-logged in to Brightspace. Setup is a **one-time, few-minute job**, and after
-that you just talk to the assistant.
+One-time setup, about five minutes. You need the **Claude Desktop app**
+(Mac or Windows) on a paid plan, and a browser where you're logged in to
+Brightspace.
 
-- **If a colleague or your program's tech contact set this up for you:**
-  you're done — open your assistant and start asking.
-- **If you're setting it up yourself:** the step-by-step instructions (for
-  Claude Cowork, Claude Code, ChatGPT for Work, and Codex) live in the
-  **[Technical Guide](TECHNICAL.md)**. It's written for whoever does the
-  install; you won't need it again once you're running.
+1. **Download the skills.** On this page, click the green **Code** button →
+   **Download ZIP**, then unzip it (double-click the downloaded file).
+2. **Zip each skill folder.** Inside the unzipped folder, right-click each
+   of these folders and choose **Compress** (Mac) / **Send to → Compressed
+   folder** (Windows):
+   - `brightspace-course` — build and copy courses *(start here)*
+   - `course-video-prep` — turn recordings into course videos *(optional)*
+   - `brightspace-video-module-publish` — publish those videos *(optional)*
+3. **Turn on the features.** In Claude Desktop, open **Settings →
+   Capabilities** and enable **Code execution** and **Skills**.
+4. **Upload the skills.** Still under **Settings → Capabilities → Skills**,
+   click **Upload skill** and add each zip from step 2.
+5. **Try it.** Open a new chat and say something like:
+   > *"Copy my course from last year into my new fall shell — keep the
+   > structure, move all the dates forward a year."*
 
-Not sure who to ask? Your department's instructional-design or
-learning-technology group is the right first stop — hand them the Technical
-Guide.
+The assistant will walk you through connecting to Brightspace the first
+time (it uses **your own login** — details in the
+**[Technical Guide](TECHNICAL.md)**, which also covers Claude Code and
+other platforms). If a colleague or your program's tech contact already set
+this up for you, just open Claude and start asking.
 
 ---
 

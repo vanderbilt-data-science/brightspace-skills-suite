@@ -27,13 +27,20 @@ and how to use it) plus Python scripts and reference docs.
 | Skill | Job | Key scripts |
 |---|---|---|
 | **`brightspace-course`** | Design & build a course | `bsapi.py` (auth/client), `bscourse.py` (verbs), `qti.py` (quizzes), `rubric.py` (rubrics), `manifest.py` (the `course.json` pipeline) |
-| **`brightspace-manage`** | In-semester upkeep | uses `brightspace-course`'s scripts |
-| **`brightspace-grading`** | Pull submissions, AI-draft feedback, publish | `grading.py` |
 | **`course-video-prep`** | Zoom recording → segments, captions, quizzes | `segment_video.py`, `make_qti.py`, `validate_package.py` |
 | **`brightspace-video-module-publish`** | Publish a prepared package as a content module | `bs_session.py`, `publish.py` |
 
-All five share one engine (`brightspace-course/scripts/bsapi.py`) and one set
-of safety rules.
+All skills share one engine (`brightspace-course/scripts/bsapi.py`) and one
+set of safety rules.
+
+> **Held out pending privacy review:** two further skills —
+> **`brightspace-manage`** (in-semester upkeep: announcements, deadlines,
+> submission status) and **`brightspace-grading`** (pull submissions,
+> AI-draft feedback, publish) — read student data, so they are excluded
+> from `main` until a FERPA / VU data-classification review completes (see
+> the FERPA-1…9 issues). They live on the
+> [`student-data-skills`](../../tree/student-data-skills) branch. Do not
+> deploy them against real student data until that review is done.
 
 ## How it works under the hood
 
@@ -115,8 +122,7 @@ Skills live in `~/.claude/skills/` (personal) or `.claude/skills/` (project):
 ```bash
 git clone https://github.com/vanderbilt-data-science/brightspace-skills-suite.git
 cd brightspace-skills-suite
-for s in brightspace-course brightspace-manage brightspace-grading \
-         course-video-prep brightspace-video-module-publish; do
+for s in brightspace-course course-video-prep brightspace-video-module-publish; do
   ln -s "$PWD/$s" "$HOME/.claude/skills/$s"
 done
 ```
@@ -210,15 +216,8 @@ python3 brightspace-course/scripts/bscourse.py announce --ou 644191 \
     --title "Welcome!" --html-file welcome.html --execute
 ```
 
-**Grade with AI**
-```bash
-python3 brightspace-grading/scripts/grading.py folders --ou 644191
-python3 brightspace-grading/scripts/grading.py pull --ou 644191 --folder 399527
-#  ... agent reads submissions, drafts scores + feedback, you review ...
-python3 brightspace-grading/scripts/grading.py feedback --ou 644191 \
-    --folder 399527 --user 12345 --score 87 --html feedback/12345.html --execute
-#  ... spot-check drafts, then re-run with --publish ...
-```
+*(Grading commands live with the `brightspace-grading` skill on the
+`student-data-skills` branch, pending privacy review.)*
 
 The intermediate formats — `course.json`, `quiz.json`, `rubric.json` — are
 documented under `brightspace-course/references/`.
@@ -256,8 +255,6 @@ brightspace-course/     Design & build a course (the shared engine lives here)
                         quiz-format, rubric-format, page-templates,
                         chrome-auth, api-quickref, template-setup
   assets/               plain-templates/, ccc-templates/ (optional kits)
-brightspace-manage/     In-semester upkeep of a running course
-brightspace-grading/    Pull submissions, AI-draft feedback, publish
 course-video-prep/      Zoom recording → segments, captions, quizzes
 brightspace-video-module-publish/    Publish a prepared package as a content module
 tools/login.py          Optional Playwright login (unattended runs only)
