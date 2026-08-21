@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+# VENDORED DUPLICATE — keep in sync with
+#   course-video-prep/scripts/make_qti.py
+# These two files are intentionally byte-identical: course-video-prep is
+# standalone (it imports nothing from sibling skills), so it carries its own
+# copy of the QTI generator. Any fix here MUST be applied there as well.
+# Verify with:  md5sum brightspace-course/scripts/qti.py \
+#                      course-video-prep/scripts/make_qti.py
 """Build a Brightspace-importable QTI 1.2 package from a quiz JSON file.
 
 Usage: python3 qti.py quiz.json output.zip
@@ -8,6 +15,7 @@ Schema in references/quiz-format.md. Question types:
   MC  - multiple choice, single correct answer
   TF  - true/false
   MS  - multi-select, all-or-nothing scoring
+  WR  - written response (essay); not auto-scored, graded manually
 
 Accepts the full quiz.json shape ({"quiz": {settings}, "questions": [...]})
 or the legacy course-video-prep shape ({"quiz_title", "questions"}).
@@ -24,7 +32,7 @@ import json
 import sys
 import zipfile
 from pathlib import Path
-from xml.sax.saxutils import escape
+from xml.sax.saxutils import escape, quoteattr
 
 
 def die(msg):
@@ -59,9 +67,9 @@ def item_metadata(qtype):
     import logs 'Question type not found' and drops every question
     (live-validated 2026-08-16, job 5092)."""
     cc = {"MC": "cc.multiple_choice.v0p1", "TF": "cc.true_false.v0p1",
-          "MS": "cc.multiple_response.v0p1"}[qtype]
+          "MS": "cc.multiple_response.v0p1", "WR": "cc.essay.v0p1"}[qtype]
     qmd = {"MC": "Multiple Choice", "TF": "True/False",
-           "MS": "Multi-Select"}[qtype]
+           "MS": "Multi-Select", "WR": "Written Response"}[qtype]
     return ('<itemmetadata><qtimetadata>'
             f'<qtimetadatafield><fieldlabel>cc_profile</fieldlabel>'
             f'<fieldentry>{cc}</fieldentry></qtimetadatafield>'
@@ -105,7 +113,7 @@ def item_mc(q, qid):
             f'<setvar varname="SCORE" action="Set">{score}</setvar>{fb_ref}'
             f'</respcondition>')
 
-    return f"""<item ident="{qid}" title="{escape(item_title(q, qid))}">
+    return f"""<item ident="{qid}" title={quoteattr(item_title(q, qid))}>
 {item_metadata(q["type"])}
 <presentation>
 {mattext(q_html(q))}
@@ -148,7 +156,7 @@ def item_ms(q, qid):
            f'</conditionvar><setvar varname="SCORE" action="Set">100</setvar>'
            f'</respcondition>')
 
-    return f"""<item ident="{qid}" title="{escape(item_title(q, qid))}">
+    return f"""<item ident="{qid}" title={quoteattr(item_title(q, qid))}>
 {item_metadata("MS")}
 <presentation>
 {mattext(q_html(q))}
@@ -163,6 +171,36 @@ def item_ms(q, qid):
 {win}
 <respcondition continue="No"><conditionvar><other/></conditionvar>
 <setvar varname="SCORE" action="Set">0</setvar></respcondition>
+</resprocessing>
+{''.join(feedbacks)}
+</item>"""
+
+
+def item_wr(q, qid):
+    """Written Response (essay). No scoring condition awards points: Brightspace
+    routes WR to manual grading, which is the point — open-ended prompts cannot
+    be machine-scored. The model answer, when supplied as 'answer_key', rides
+    along as response feedback so whoever grades sees it in the quiz editor."""
+    rows = int(q.get("rows", 10))
+    key = q.get("answer_key") or q.get("feedback")
+    feedbacks, fb_ref = [], ""
+    if key:
+        fb_id = f"{qid}_KEY"
+        feedbacks.append(feedback_block(fb_id, escape_html(key)))
+        fb_ref = f'<displayfeedback feedbacktype="Response" linkrefid="{fb_id}"/>'
+
+    return f"""<item ident="{qid}" title={quoteattr(item_title(q, qid))}>
+{item_metadata("WR")}
+<presentation>
+{mattext(q_html(q))}
+<response_str ident="{qid}_RS" rcardinality="Single">
+<render_fib fibtype="String" rows="{rows}" columns="80"/>
+</response_str>
+</presentation>
+<resprocessing>
+{outcomes()}
+<respcondition continue="No"><conditionvar><other/></conditionvar>
+<setvar varname="SCORE" action="Set">0</setvar>{fb_ref}</respcondition>
 </resprocessing>
 {''.join(feedbacks)}
 </item>"""
@@ -201,12 +239,16 @@ def validate_spec(path):
     for n, q in enumerate(questions, 1):
         ctx = f"question {n}"
         t = q.get("type")
-        if t not in ("MC", "TF", "MS"):
-            errors.append(f"{ctx}: type must be MC, TF or MS (got {t!r})")
+        if t not in ("MC", "TF", "MS", "WR"):
+            errors.append(f"{ctx}: type must be MC, TF, MS or WR (got {t!r})")
             continue
         if not q.get("text"):
             errors.append(f"{ctx}: no text")
-        if t == "TF":
+        if t == "WR":
+            if not q.get("answer_key"):
+                warnings.append(f"{ctx}: WR has no 'answer_key' — the grader will see no "
+                                "model answer in Brightspace (it is graded manually either way)")
+        elif t == "TF":
             if not isinstance(q.get("answer"), bool):
                 errors.append(f"{ctx}: TF needs boolean 'answer'")
         else:
@@ -219,7 +261,8 @@ def validate_spec(path):
                               f"(has {ncorrect})")
             if t == "MS" and ncorrect < 1:
                 errors.append(f"{ctx}: MS needs at least 1 correct option")
-        if not any(o.get("feedback") for o in q.get("options", [])) \
+        if t != "WR" \
+                and not any(o.get("feedback") for o in q.get("options", [])) \
                 and not q.get("feedback_true") and not q.get("feedback_false"):
             warnings.append(f"{ctx}: no answer feedback (low-stakes quizzes "
                             "should teach — consider adding)")
@@ -245,8 +288,10 @@ def build(questions_path, out_zip):
             items.append(item_mc(q, qid))
         elif q["type"] == "MS":
             items.append(item_ms(q, qid))
+        elif q["type"] == "WR":
+            items.append(item_wr(q, qid))
         else:
-            die(f"question {n}: unknown type {q['type']} (use MC, TF, MS)")
+            die(f"question {n}: unknown type {q['type']} (use MC, TF, MS, WR)")
 
     quiz_xml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <questestinterop>

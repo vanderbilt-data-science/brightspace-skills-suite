@@ -52,16 +52,38 @@ bscourse.py quiz-publish --ou N --quiz-json quiz.json --module "Module 2"
         { "text": "Attention", "correct": true },
         { "text": "Gradient descent",
           "feedback": "That's training, not the inference pipeline." }
-      ] }
+      ] },
+    { "type": "WR", "text": "Explain in your own words why context length limits what a model can use.",
+      "answer_key": "Full credit names the finite window and that anything outside it is invisible to the model. 0-5 anchors: 5 = mechanism plus a consequence; 3 = mechanism only; 1 = restates the prompt.",
+      "rows": 12 }
   ]
 }
 ```
 
 Types: `MC` (exactly one correct), `TF` (boolean `answer`), `MS`
-(multi-select, all-or-nothing). Question `text` and option `text` may be
-plain text or HTML. Per-option `feedback` is shown after answering —
-low-stakes quizzes should teach, so the validator warns when feedback is
-absent.
+(multi-select, all-or-nothing), `WR` (written response / essay). Question
+`text` and option `text` may be plain text or HTML. Per-option `feedback`
+is shown after answering — low-stakes quizzes should teach, so the
+validator warns when feedback is absent.
+
+### `WR` — written response
+
+`WR` carries an open-ended prompt: no options, and **no auto-scoring**.
+Brightspace routes it to manual grading, which is the point — an
+open-ended prompt cannot be machine-scored, and forcing one into `MC` to
+gain auto-grading changes what the question measures. It imports as
+Brightspace's Written Response type (Common Cartridge `cc.essay.v0p1`).
+
+| Field | Meaning |
+|-------|---------|
+| `text` | the prompt (required) |
+| `answer_key` | the model answer / score anchors, shown to whoever grades as the question's feedback. Optional, but the validator warns without it — a grader with no key grades inconsistently. |
+| `rows` | height of the student's answer box (default `10`) |
+
+Points per WR question are set by the import's default; per-question
+point overrides still need the UI (see below). Because nothing is
+auto-scored, a quiz containing WR questions will show as needing grading
+in Brightspace until the instructor scores it.
 
 ## Authoring guidance (for Claude)
 
@@ -72,7 +94,11 @@ absent.
   questions from.
 - Write questions against the module's stated objectives, distribute
   across them, and include distractor feedback that names the
-  misconception.
+  misconception. For `WR`, write the `answer_key` at the same time as the
+  prompt — it is the grading standard, not an afterthought.
+- Fill in the Blanks, Arithmetic, Significant Figures, Matching, and
+  Ordering are **not** supported by this format. They need the UI, or the
+  CSV fallback (see below) where it can carry them.
 - Show the drafted questions to the user for review BEFORE
   `quiz-publish` — content approval is the user's, always.
 - `is_active: false` (default) keeps the quiz invisible to students
@@ -85,3 +111,11 @@ random sections, special access beyond the API's SpecialAccessData, and
 the newer assessment-experience toggles. Everything else — dates,
 attempts, time limit, shuffle, grade linkage, description, active flag —
 rides the shell PUT automatically.
+
+## The CSV fallback
+
+For anything QTI cannot carry, Brightspace's Question Library also
+accepts a row-key CSV upload (Question Library > Import > Upload a File).
+That path is manual — a human uploads the file — so it is a fallback, not
+the standard path: QTI import is scripted end to end and should be
+preferred whenever the question types allow it.
