@@ -44,13 +44,16 @@ The tenant mints a ~1h full-scope JWT to any logged-in browser session.
 `bsapi.py` looks for, in order: `BRIGHTSPACE_TOKEN` env → cached token
 (<50 min) → `storage_state.json` cookies. Get a token by (best first):
 
-1. **Paste one (universal, zero tooling):** user runs the two-line fetch
+1. **Desktop Browser pane mints it (smoothest; verified 2026-08-21):** in
+   Claude Code on Desktop, open the tenant in the built-in Browser pane,
+   let the user do SSO + Duo there, run the mint JS in that page, cache
+   via a temp file into `save-token` (never inline the token in a shell
+   command) — full steps in `references/chrome-auth.md`.
+2. **Paste one (universal, zero tooling):** user runs the two-line fetch
    in their Brightspace tab's DevTools console (in
-   `references/chrome-auth.md`), then
-   `printf '%s' '<token>' | python3 scripts/bsapi.py save-token`.
-2. **Claude-in-Chrome mints it (best in Cowork):** Claude runs that fetch
-   in the user's tab and caches it — `references/chrome-auth.md`. Needs
-   the extension with JS permission on the Brightspace domain.
+   `references/chrome-auth.md`), Claude saves it via stdin-from-file.
+   (The Claude-in-Chrome *extension* currently redacts JWT results, so on
+   that surface use this paste path or the Desktop pane.)
 3. **Import from a browser profile:** `python3 scripts/bsapi.py
    import-cookies safari|firefox|edge` — pure code, durable for days.
    (Chrome v127+ App-Bound Encryption blocks this; use another browser
