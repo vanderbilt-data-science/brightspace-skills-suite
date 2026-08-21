@@ -17,6 +17,21 @@ write dry-run first, verified by read-back, and guarded on production.
 Scripts live in `scripts/` (`bsapi.py` = auth + client, `bscourse.py` = the
 verbs). They need only Python 3 + `requests` (auto-installed).
 
+## Data handling — FERPA / VU Level 3 (non-negotiable)
+
+Claude is **not approved for Vanderbilt Level 3 (Restricted) data**, which
+includes FERPA student education records: any student identity coupled
+with grades, scores, submissions, or enrollment. Course *design* needs
+none of that — keep it that way:
+
+- Never call classlist, enrollment-of-others, grades-of-students, or
+  submission endpoints, and never read Classlist/Grades/submission pages
+  via browser tools, even when convenient for a side question.
+- If a task drifts toward student data ("who submitted", "grade this"),
+  stop and route it to the reviewed workflow — don't improvise it here.
+- Credentials are secrets: never print a token, never inline one in a
+  shell command (see `references/chrome-auth.md` for the safe forms).
+
 ## Safety rules (non-negotiable)
 
 1. **Dry-run is the default.** Every write command prints its plan and exits

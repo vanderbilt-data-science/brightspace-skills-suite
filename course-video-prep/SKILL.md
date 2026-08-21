@@ -9,6 +9,19 @@ Turn one long recording into a complete, reviewable async module package: a sequ
 
 The pedagogical model: students watch a 6-12 minute segment focused on one concept, then immediately answer 2-4 low-stakes questions about it (retrieval practice), then move to the next segment. Segment boundaries follow concepts, not the clock.
 
+## Data handling — FERPA / VU Level 3 (non-negotiable)
+
+Claude is **not approved for Vanderbilt Level 3 (Restricted) data**, and
+class recordings can contain it: student names in the VTT speaker labels
+and student voices/questions in the audio are FERPA education records.
+Until automated redaction lands (issue FERPA-2):
+
+- Before analyzing a transcript, ask the user whether students speak in
+  it. Prefer recordings of instructor-only lecture/demo segments.
+- If student speech or names appear, have the user trim/redact first, or
+  exclude those spans from segments and captions — never republish
+  student names or voices in the packaged captions/videos.
+
 ## Workflow overview
 
 ```

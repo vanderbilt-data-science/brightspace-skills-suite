@@ -436,6 +436,13 @@ def main():
         for c in my_courses(bs):
             print(f"  ou={c['ou']:<10} {c['name']}  [{c['code']}]")
     elif cmd == "token":
+        # Full-scope credential: never print it by accident (FERPA-5).
+        if "--show" not in sys.argv[2:]:
+            die("refusing to print the bearer token without --show.\n"
+                "It grants your full LMS permissions for ~1h and would land "
+                "in scrollback/transcripts. For curl, prefer:\n"
+                '  curl -H "Authorization: Bearer $(python3 bsapi.py token '
+                '--show)" ...')
         print(bs.s.headers["Authorization"].split(" ", 1)[1])
     elif cmd == "versions":
         print(json.dumps(bs.jget("/d2l/api/versions/"), indent=1))

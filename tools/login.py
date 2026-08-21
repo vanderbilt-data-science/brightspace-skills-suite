@@ -58,7 +58,8 @@ def main() -> int:
             browser.close()
             return 1
         context.storage_state(path=str(STATE_PATH))
-        print(f"Session saved to {STATE_PATH}")
+        STATE_PATH.chmod(0o600)  # session cookies = credentials (FERPA-5)
+        print(f"Session saved to {STATE_PATH} (mode 600)")
         browser.close()
     return 0
 

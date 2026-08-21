@@ -4,9 +4,9 @@
 tell it what you want, in plain English.**
 
 No coding. No clicking through endless menus. You describe what you want for
-your course, and the assistant does it — then shows you the result. It works
-through the AI assistant your program already uses (Claude Cowork, Claude
-Code, ChatGPT for Work, or OpenAI Codex).
+your course, and the assistant does it — then shows you the result. It runs
+in **Claude** — the Claude Desktop app (Claude Code) is the recommended and
+verified home, with claude.ai as an option.
 
 Created by **Jesse Spencer-Smith** (Vanderbilt Data Science Institute) and
 **Claude Opus**.
@@ -105,15 +105,22 @@ on the skills you want. No files to handle.
 **On claude.ai in the browser:** skills there are uploaded manually in
 Settings — the steps are in the **[Technical Guide](TECHNICAL.md)**.
 
-Then make sure you're logged in to Brightspace in your browser, open a new
-chat, and try:
+**Connecting to Brightspace is just logging in.** In your first chat, say
+*"log me into Brightspace."* Claude opens Brightspace in its built-in
+browser; you sign in the way you always do (university login + Duo — Claude
+never touches your password), and you're connected. The connection uses
+**your own account**, so Claude can only ever do what you could do
+yourself — via a pass that expires every hour; Claude renews it as
+needed and asks you to log in again only when your university session
+has lapsed.
+
+Then try:
 
 > *"Copy my course from last year into my new fall shell — keep the
 > structure, move all the dates forward a year."*
 
-The assistant walks you through connecting to Brightspace the first time
-(it uses **your own login**, nothing more). If a colleague already set this
-up for you, just open Claude and start asking.
+If a colleague already set this up for you, just open Claude and start
+asking.
 
 > **Tip:** the full experience — including help with the handful of
 > Brightspace steps that need clicks in the browser — is in **Claude

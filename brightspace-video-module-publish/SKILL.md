@@ -10,6 +10,14 @@ Take a package directory containing `manifest.json` (the contract produced by
 and make it exist in a Brightspace course: one content module holding the
 overview page, the videos (with captions), and the quizzes, in manifest order.
 
+## Data handling — FERPA / VU Level 3 (non-negotiable)
+
+Claude is **not approved for Vanderbilt Level 3 (Restricted) data**
+(FERPA student records). Publishing is content-only — keep it that way:
+never read Classlist/Grades/submission pages or endpoints while working
+in the course, and never print or inline auth tokens (see
+`brightspace-course/references/chrome-auth.md` for safe handling).
+
 ## Safety rules (non-negotiable)
 
 - **Dry-run is the default.** `publish.py` prints its full action plan and

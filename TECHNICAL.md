@@ -69,26 +69,37 @@ The tenant mints a ~1h JWT to any logged-in session. `bsapi.py` looks for a
 token in this order: `BRIGHTSPACE_TOKEN` env var → cached token (<50 min
 old) → saved `storage_state.json` cookies. Get a token by (best first):
 
-### 1. Paste a token (universal, zero extra tooling)
+### 1. Just say "log me into Brightspace" (Claude Code on Desktop — verified)
+In a Claude Code session in the Desktop app, ask Claude to connect to
+Brightspace. It opens the tenant in the app's **built-in Browser pane**;
+you complete your normal SSO + Duo login there (Claude never touches the
+credential fields); Claude then mints the ~1h token in that logged-in page
+and caches it. Nothing to install, nothing to paste. Verified end-to-end
+2026-08-21. Steps Claude follows:
+`brightspace-course/references/chrome-auth.md`.
+
+### 2. Paste a token (universal, zero extra tooling)
 In a Brightspace tab you're logged into, open DevTools → Console and run:
 ```js
-const x = await fetch('/d2l/lp/auth/xsrf-tokens',{credentials:'same-origin'}).then(r=>r.json());
-(await fetch('/d2l/lp/auth/oauth2/token',{method:'POST',credentials:'same-origin',
+copy((await (async()=>{const x=await fetch('/d2l/lp/auth/xsrf-tokens',{credentials:'same-origin'}).then(r=>r.json());
+return (await fetch('/d2l/lp/auth/oauth2/token',{method:'POST',credentials:'same-origin',
   headers:{'X-Csrf-Token':x.referrerToken,'Content-Type':'application/x-www-form-urlencoded'},
-  body:'scope=*:*:*'}).then(r=>r.json())).access_token
+  body:'scope=*:*:*'}).then(r=>r.json())).access_token})()))
 ```
-Copy the printed token, then:
+That puts the token on your clipboard (never displayed). Then:
 ```bash
 export BRIGHTSPACE_HOST=brightspace.vanderbilt.edu
-printf '%s' 'PASTE_TOKEN_HERE' | python3 brightspace-course/scripts/bsapi.py save-token
+pbpaste | python3 brightspace-course/scripts/bsapi.py save-token   # macOS
+# Windows: powershell Get-Clipboard | python3 .../bsapi.py save-token
 python3 brightspace-course/scripts/bsapi.py whoami     # confirm
 python3 brightspace-course/scripts/bsapi.py courses    # find your course id (ou)
 ```
+(Piping from the clipboard keeps the token out of your shell history —
+don't inline it in the command.)
 
-### 2. Claude-in-Chrome mints it (best in Cowork)
-With the extension connected and JavaScript permitted on the Brightspace
-domain, the agent runs that same fetch in your tab and caches the result —
-nothing to paste. Steps: `brightspace-course/references/chrome-auth.md`.
+Note: the Claude-in-Chrome *extension* can run the same mint in your own
+Chrome tab, but it currently redacts JWTs from what Claude can read back,
+so on that surface use path 1 or this paste path.
 
 ### 3. Import cookies from a browser profile
 ```bash
@@ -164,28 +175,13 @@ same Desktop app, which executes on your machine and reaches the tenant.
 3. No Chrome extension in the sandbox, so UI-only steps are done by you from
    the printed step-plans. All API-based work runs in the sandbox.
 
-### OpenAI ChatGPT for Work (Team / Enterprise)
-No native Agent-Skills format, but the engine is plain Python (runs in the
-code interpreter):
-1. Upload the relevant `scripts/` (`bsapi.py`, `bscourse.py`, `qti.py`,
-   `rubric.py`, `grading.py`) and `references/` docs to the conversation or a
-   Project.
-2. Paste your token (`BRIGHTSPACE_TOKEN=<token>` or `save-token`).
-3. Point ChatGPT at the matching `SKILL.md` / `references/*.md` as its
-   operating instructions.
-
-### OpenAI Codex
-Closest non-Claude fit — it runs the scripts directly:
-1. Clone the repo into Codex's workspace.
-2. Provide the token via `BRIGHTSPACE_TOKEN` (or `save-token`).
-3. Ask Codex to run the scripts, using `SKILL.md`/`references/*.md` as
-   context.
-
-> **Portability summary:** the *scripts* are provider-neutral Python and run
-> anywhere Python does. The *skill wrapper* (auto-triggering) and *browser
-> assist* (Claude in Chrome) are Claude features — best on Claude Code and
-> Cowork. On OpenAI platforms, run the scripts directly and use the
-> `SKILL.md` files as instructions.
+> **Portability summary:** the *scripts* are plain Python and run anywhere
+> Python does, but the supported surfaces are the Claude ones above — the
+> skill wrapper (auto-triggering), the verified auth paths, and the
+> data-handling review all assume them. We removed the porting
+> instructions for other AI platforms: handing a full-scope LMS token to
+> an unreviewed environment isn't something these docs should teach
+> (FERPA-6).
 
 ## Command reference & examples
 
